@@ -10,14 +10,15 @@ CoachFlow ist eine beispielhafte Anwendung zur Planung von Mannschaftstrainings.
 | --- | --- |
 | [experiments/01-architecture/SimplePrompt/01-prompt.md](experiments/01-architecture/SimplePrompt/01-prompt.md) | Erster Prompt mit knappem Kontext; zunächst leere Datei. |
 | [experiments/01-architecture/AdvancedPrompt/01-prompt.md](experiments/01-architecture/AdvancedPrompt/01-prompt.md) | Erster Prompt mit ausführlichem Kontext; zunächst leere Datei. |
-| [AdditionalAssessmentDocuments/](AdditionalAssessmentDocuments/) | Gemeinsame Bewertungsgrundlage, Szenarien und ergänzende Auswertungen. |
+| [Bewertung](experiments/01-architecture/Bewertung/) | Gemeinsame Bewertungsgrundlage für S1 bis S5 und Vorlagen für die Auswertung. |
+| [AdditionalAssessmentDocuments/](AdditionalAssessmentDocuments/) | Übersicht zu den ergänzenden Bewertungsdokumenten. |
 
 ## Zwei Versuchsrunden
 
 1. **Architekturentwurf:** Zwei Varianten mit knappem beziehungsweise ausführlichem Kontext und unterschiedlichem Begründungsauftrag. Ursprüngliche Antworten und spätere Präzisierungen werden getrennt dokumentiert.
 2. **Implementierung:** Eine identische Erweiterung wird ausgehend von demselben Prototypstand zweimal umgesetzt, ohne beziehungsweise mit einem Architektur-Skill.
 
-Diese Struktur enthält zunächst Dokumentationsplätze. Sie enthält noch keine Architekturantworten, Bewertungen oder Implementierungen.
+Die Bewertungsdokumente enthalten Szenarien, Kriterien und Vorlagen. Architekturantworten, ausgefüllte Bewertungen und Implementierungen werden getrennt ergänzt.
 
 ## Dokumentation der ersten Runde
 
@@ -29,7 +30,7 @@ Je Variante können später diese Dateien ergänzt werden:
 - `04-response-refined.md`: daraus entstandene präzisierte Antwort (A1 beziehungsweise B1).
 - `run-metadata.md`: Datum, Werkzeug, Modell, Einstellungen und tatsächlich bereitgestellte Dateien.
 
-Der gemeinsame Projektkontext und die Bewertungsmaßstäbe liegen in `AdditionalAssessmentDocuments/`. Sie werden nicht automatisch Bestandteil beider Prompts: Die unterschiedliche Kontextmenge ist Teil des Versuchs.
+Der gemeinsame Projektkontext und die Bewertungsmaßstäbe liegen im Ordner [Bewertung](experiments/01-architecture/Bewertung/). Sie werden nicht automatisch Bestandteil beider Prompts: Die unterschiedliche Kontextmenge ist Teil des Versuchs.
 
 ## Branches und Vergleichbarkeit
 

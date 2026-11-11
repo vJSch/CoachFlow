@@ -4,16 +4,16 @@ Dieser Ordner enthält die gemeinsame Bewertungsgrundlage und die ausführlichen
 
 ## Vorgesehene Dokumente
 
-Die folgenden Dateien werden erst angelegt, wenn ihre Inhalte vorliegen:
+Die Dokumente befinden sich im Ordner [Bewertung](../experiments/01-architecture/Bewertung/). Die Bewertungs- und Prüfvorlagen sind noch nicht ausgefüllt.
 
 | Datei | Zweck |
 | --- | --- |
-| `project-context.md` | Verbindlicher tatsächlicher Projektkontext einschließlich fachlichem Umfang, Qualitätszielen und Randbedingungen. |
-| `quality-scenarios.md` | Gemeinsame Szenarien, Prioritäten und überprüfbare Beurteilungskriterien. |
-| `evaluation-rules.md` | Einheitliche Bewertungsregeln und Umgang mit fehlenden Angaben beziehungsweise unterschiedlichem Funktionsumfang. |
-| `architecture-comparison.md` | Vergleich der ursprünglichen und der präzisierten Entwürfe; reduzierte, an ATAM und SAAM orientierte Analyse. |
-| `prototype-checks.md` | Durchgeführte Prototypprüfungen mit Beobachtung, Ergebnis und geprüftem Commit. |
-| `implementation-comparison.md` | Ergebnisse der zweiten Versuchsrunde ohne beziehungsweise mit Architektur-Skill. |
+| [project-context.md](../experiments/01-architecture/Bewertung/project-context.md) | Verbindlicher tatsächlicher Projektkontext einschließlich fachlichem Umfang, Qualitätszielen und Randbedingungen. |
+| [quality-scenarios.md](../experiments/01-architecture/Bewertung/quality-scenarios.md) | Gemeinsame Szenarien, Prioritäten und überprüfbare Beurteilungskriterien. |
+| [evaluation-rules.md](../experiments/01-architecture/Bewertung/evaluation-rules.md) | Einheitliche Bewertungsregeln und Umgang mit fehlenden Angaben beziehungsweise unterschiedlichem Funktionsumfang. |
+| [architecture-comparison.md](../experiments/01-architecture/Bewertung/architecture-comparison.md) | Vergleich der ursprünglichen und der präzisierten Entwürfe; reduzierte, an ATAM und SAAM orientierte Analyse. |
+| [prototype-checks.md](../experiments/01-architecture/Bewertung/prototype-checks.md) | Durchgeführte Prototypprüfungen mit Beobachtung, Ergebnis und geprüftem Commit. |
+| [implementation-comparison.md](../experiments/01-architecture/Bewertung/implementation-comparison.md) | Ergebnisse der zweiten Versuchsrunde ohne beziehungsweise mit Architektur-Skill. |
 
 ## Nachvollziehbarkeit
 
