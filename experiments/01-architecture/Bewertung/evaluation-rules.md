@@ -2,7 +2,6 @@
 
 ## Vergleichsgrundlage
 
-- Die ursprünglichen Antworten bleiben als A0 (SimplePrompt) und B0 (AdvancedPrompt) nachvollziehbar. Nach Klärung präzisierte Fassungen werden getrennt als A1 und B1 erfasst.
 - Beide Entwürfe werden gegen dieselben [Szenarien S1 bis S5](quality-scenarios.md) und denselben [Projektkontext](project-context.md) bewertet.
 - Pro Befund festhalten, ob die Anforderung im jeweiligen Prompt stand, erst später ergänzt wurde oder im Entwurf unklar bleibt. Ein Unterschied im Funktionsumfang ist für sich genommen kein Urteil über die Architekturqualität.
 - Kriterien und ihre Prioritäten mit Stand oder Commit dokumentieren. Änderungen nach Sichtung der Antworten als nachträglich kennzeichnen.
