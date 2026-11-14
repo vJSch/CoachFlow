@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CoachFlow.AiAdapters.Canned/CoachFlow.AiAdapters.Canned.csproj" />
+    <Project Path="src/CoachFlow.Api/CoachFlow.Api.csproj" />
+    <Project Path="src/CoachFlow.Application/CoachFlow.Application.csproj" />
+    <Project Path="src/CoachFlow.Client/CoachFlow.Client.csproj" />
+    <Project Path="src/CoachFlow.Domain/CoachFlow.Domain.csproj" />
+    <Project Path="src/CoachFlow.Export.Xlsx/CoachFlow.Export.Xlsx.csproj" />
+    <Project Path="src/CoachFlow.Infrastructure/CoachFlow.Infrastructure.csproj" />
+    <Project Path="src/CoachFlow.Web/CoachFlow.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CoachFlow.Api.Tests/CoachFlow.Api.Tests.csproj" />
+    <Project Path="tests/CoachFlow.Application.Tests/CoachFlow.Application.Tests.csproj" />
+    <Project Path="tests/CoachFlow.Architecture.Tests/CoachFlow.Architecture.Tests.csproj" />
+    <Project Path="tests/CoachFlow.Client.Tests/CoachFlow.Client.Tests.csproj" />
+    <Project Path="tests/CoachFlow.Domain.Tests/CoachFlow.Domain.Tests.csproj" />
+    <Project Path="tests/CoachFlow.E2E.Tests/CoachFlow.E2E.Tests.csproj" />
+    <Project Path="tests/CoachFlow.Export.Tests/CoachFlow.Export.Tests.csproj" />
+    <Project Path="tests/CoachFlow.Infrastructure.Tests/CoachFlow.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

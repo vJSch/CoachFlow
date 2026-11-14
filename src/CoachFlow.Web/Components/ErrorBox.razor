@@ -1,0 +1,19 @@
+@if (Error is not null)
+{
+    <div class="error" role="alert">
+        <p>@Error.Message</p>
+        @if (Error.Errors is { Count: > 0 } details)
+        {
+            <ul>
+                @foreach (var detail in details)
+                {
+                    <li>@detail</li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public ApiError? Error { get; set; }
+}

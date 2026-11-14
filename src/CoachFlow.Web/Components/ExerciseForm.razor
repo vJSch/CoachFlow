@@ -1,0 +1,97 @@
+@* Bearbeitet einen Übungsinhalt; genutzt für den Bestand und für KI-Entwürfe. *@
+
+<div class="form-grid">
+    <label class="wide">Titel
+        <input @bind="Model.Title" @bind:after="NotifyAsync" maxlength="120" disabled="@ReadOnly" />
+    </label>
+    <label class="wide">Beschreibung
+        <textarea rows="4" @bind="Model.Description" @bind:after="NotifyAsync" disabled="@ReadOnly"></textarea>
+    </label>
+    <label>Dauer (Minuten)
+        <input type="number" min="1" @bind="Model.DurationMinutes" @bind:after="NotifyAsync" disabled="@ReadOnly" />
+    </label>
+    <label>Mindestens Personen
+        <input type="number" min="1" @bind="Model.MinParticipants" @bind:after="NotifyAsync" disabled="@ReadOnly" />
+    </label>
+    <label>Höchstens Personen
+        <input type="number" min="1" @bind="Model.MaxParticipants" @bind:after="NotifyAsync" disabled="@ReadOnly" />
+    </label>
+</div>
+
+<fieldset class="choices">
+    <legend>Geeignet für</legend>
+    @foreach (var level in Labels.AllLevels)
+    {
+        <label class="choice">
+            <input type="checkbox" checked="@Model.Levels.Contains(level)" disabled="@ReadOnly"
+                   @onchange="() => ToggleLevelAsync(level)" />
+            @Labels.Level(level)
+        </label>
+    }
+</fieldset>
+
+<FocusAreaPicker Areas="FocusAreas" Selected="Model.FocusAreaIds" ReadOnly="ReadOnly" Changed="NotifyAsync" />
+
+<fieldset class="options">
+    <legend>Anpassungen und Varianten</legend>
+    @for (var i = 0; i < Model.Options.Count; i++)
+    {
+        var option = Model.Options[i];
+        var index = i;
+        <div class="option" @key="option">
+            <select @bind="option.Kind" @bind:after="NotifyAsync" disabled="@ReadOnly" aria-label="Art">
+                <option value="@OptionKind.Anpassung">Anpassung</option>
+                <option value="@OptionKind.Variante">Variante</option>
+            </select>
+            <input @bind="option.Title" @bind:after="NotifyAsync" placeholder="Titel" disabled="@ReadOnly" aria-label="Titel" />
+            <textarea rows="2" @bind="option.Description" @bind:after="NotifyAsync" placeholder="Beschreibung" disabled="@ReadOnly" aria-label="Beschreibung"></textarea>
+            @if (option.Kind == OptionKind.Variante && OtherExercises.Count > 0)
+            {
+                <select @bind="option.ReferencedExerciseId" @bind:after="NotifyAsync" disabled="@ReadOnly" aria-label="Andere Übung als Variante">
+                    <option value="">Keine andere Übung</option>
+                    @foreach (var other in OtherExercises)
+                    {
+                        <option value="@other.Id">@other.Content.Title</option>
+                    }
+                </select>
+            }
+            @if (!ReadOnly)
+            {
+                <button type="button" class="link danger" @onclick="() => RemoveOptionAsync(index)">Entfernen</button>
+            }
+        </div>
+    }
+    @if (!ReadOnly)
+    {
+        <button type="button" class="secondary" @onclick="AddOptionAsync">Anpassung oder Variante hinzufügen</button>
+    }
+</fieldset>
+
+@code {
+    [Parameter, EditorRequired] public ExerciseModel Model { get; set; } = new();
+    [Parameter, EditorRequired] public List<FocusAreaDto> FocusAreas { get; set; } = [];
+    /// <summary>Bestandsübungen, auf die eine Variante verweisen kann (K4).</summary>
+    [Parameter] public IReadOnlyList<ExerciseDto> OtherExercises { get; set; } = [];
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private Task NotifyAsync() => Changed.InvokeAsync();
+
+    private Task ToggleLevelAsync(ExperienceLevel level)
+    {
+        Model.ToggleLevel(level);
+        return NotifyAsync();
+    }
+
+    private Task AddOptionAsync()
+    {
+        Model.Options.Add(new OptionModel());
+        return NotifyAsync();
+    }
+
+    private Task RemoveOptionAsync(int index)
+    {
+        Model.Options.RemoveAt(index);
+        return NotifyAsync();
+    }
+}

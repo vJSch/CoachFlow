@@ -1,0 +1,182 @@
+@implements IDisposable
+@inject SuggestionRequester Requester
+@inject CoachFlowApi Api
+@inject AppState State
+@inject NavigationManager Nav
+
+<section class="card ai" aria-labelledby="ai-title">
+    <h2 id="ai-title">KI-Vorschlag</h2>
+
+    @switch (phase)
+    {
+        case Phase.Idle:
+            <p class="muted">Die KI schlägt eine Übung passend zu den Trainingsdaten vor. Du prüfst den Vorschlag und entscheidest selbst, ob du ihn übernimmst.</p>
+            @foreach (var error in InputErrors)
+            {
+                <p class="hint">@error</p>
+            }
+            <button type="button" disabled="@(!State.CanEdit || InputErrors.Count > 0)" @onclick="RequestAsync">Übung vorschlagen lassen</button>
+            @if (!State.CanEdit)
+            {
+                <p class="hint">@ClientMessages.SuggestionOffline</p>
+            }
+            break;
+
+        case Phase.Loading:
+            <div class="loading" role="status" aria-live="polite">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>Vorschlag wird erstellt …</span>
+            </div>
+            @if (slow)
+            {
+                <p class="notice" role="status">@ClientMessages.SuggestionSlow</p>
+            }
+            <button type="button" class="secondary" @onclick="Cancel">Abbrechen</button>
+            break;
+
+        case Phase.Review when draft is not null && suggestion is not null:
+            <p class="muted">Vorschlag der KI. Du kannst ihn vor der Übernahme bearbeiten.</p>
+            <ExerciseForm Model="draft" FocusAreas="FocusAreas" Changed="DraftChanged" />
+            <FindingList Findings="Findings" />
+            <div class="actions">
+                <button type="button" disabled="@(busy || !State.CanEdit || SuggestionValidator.HasBlockers(Findings))" @onclick="AdoptAsync">
+                    Übernehmen und einplanen
+                </button>
+                <button type="button" class="secondary" disabled="@busy" @onclick="DiscardAsync">Verwerfen</button>
+            </div>
+            break;
+    }
+
+    @if (message is not null)
+    {
+        <p class="notice" role="alert">@message</p>
+    }
+</section>
+
+@code {
+    private enum Phase { Idle, Loading, Review }
+
+    [Parameter, EditorRequired] public TrainingParameters Parameters { get; set; } = default!;
+    [Parameter, EditorRequired] public List<FocusAreaDto> FocusAreas { get; set; } = [];
+    /// <summary>Wird mit der neuen Bestandsübung aufgerufen, nachdem der Server die Übernahme geprüft hat.</summary>
+    [Parameter] public EventCallback<ExerciseDto> OnAdopted { get; set; }
+
+    private Phase phase;
+    private bool slow;
+    private bool busy;
+    private bool dirty;
+    private string? message;
+    private SuggestionDto? suggestion;
+    private ExerciseModel? draft;
+    private CancellationTokenSource? cancel;
+
+    private IReadOnlyList<string> InputErrors => Parameters.GetErrors(forAiRequest: true);
+
+    // Live dieselbe Prüfung wie der Server, mit den Trainingsdaten, für die der Vorschlag erstellt wurde.
+    private IReadOnlyList<Finding> Findings =>
+        draft is null || suggestion is null ? [] : SuggestionValidator.Validate(draft.ToContent(), suggestion.Parameters);
+
+    private async Task RequestAsync()
+    {
+        message = null;
+        slow = false;
+        phase = Phase.Loading;
+        cancel = new CancellationTokenSource();
+
+        var attempt = await Requester.RequestAsync(Parameters, () => _ = InvokeAsync(() => { slow = true; StateHasChanged(); }), cancel.Token);
+        cancel.Dispose();
+        cancel = null;
+
+        switch (attempt)
+        {
+            case SuggestionAttempt.Created created:
+                suggestion = created.Suggestion;
+                draft = ExerciseModel.From(created.Suggestion.Draft);
+                dirty = false;
+                phase = Phase.Review;
+                break;
+            case SuggestionAttempt.Unauthorized:
+                Nav.NavigateTo("login");
+                break;
+            case SuggestionAttempt.Cancelled:
+                phase = Phase.Idle;
+                message = "Die Anfrage wurde abgebrochen. Deine Eingaben bleiben erhalten.";
+                break;
+            case SuggestionAttempt.TimedOut timedOut:
+                phase = Phase.Idle;
+                message = timedOut.Message;
+                break;
+            case SuggestionAttempt.Failed failed:
+                phase = Phase.Idle;
+                message = failed.Message;
+                break;
+        }
+    }
+
+    private void Cancel() => cancel?.Cancel();
+
+    private void DraftChanged() => dirty = true;
+
+    private async Task AdoptAsync()
+    {
+        busy = true;
+        message = null;
+        try
+        {
+            if (dirty)
+            {
+                var edit = await Api.EditSuggestionAsync(suggestion!.Id, draft!.ToContent());
+                if (!edit.IsOk) { Fail(edit.Status, edit.Error); return; }
+                dirty = false;
+            }
+
+            var adopt = await Api.AdoptSuggestionAsync(suggestion!.Id);
+            if (adopt is { IsOk: true, Value: { } exercise })
+            {
+                Reset();
+                message = $"„{exercise.Content.Title}“ ist jetzt im Übungsbestand und im Plan.";
+                await OnAdopted.InvokeAsync(exercise);
+                return;
+            }
+            if (adopt.HttpStatus == 422 && adopt.ReadBody<AdoptBlocked>() is { } blocked)
+            {
+                message = blocked.Message;
+                return;
+            }
+            Fail(adopt.Status, adopt.Error);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DiscardAsync()
+    {
+        busy = true;
+        var result = await Api.DiscardSuggestionAsync(suggestion!.Id);
+        busy = false;
+        if (result.IsOk || result.HttpStatus == 404) { Reset(); return; }
+        Fail(result.Status, result.Error);
+    }
+
+    private void Fail(ApiStatus status, ApiError? error)
+    {
+        if (status == ApiStatus.Unauthorized) { Nav.NavigateTo("login"); return; }
+        message = error?.Message ?? ClientMessages.RequestFailed;
+    }
+
+    private void Reset()
+    {
+        suggestion = null;
+        draft = null;
+        dirty = false;
+        phase = Phase.Idle;
+    }
+
+    public void Dispose()
+    {
+        cancel?.Cancel();
+        cancel?.Dispose();
+    }
+}

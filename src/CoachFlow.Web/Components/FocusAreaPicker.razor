@@ -1,0 +1,58 @@
+@inject CoachFlowApi Api
+@inject AppState State
+
+<fieldset class="choices">
+    <legend>Schwerpunkte (höchstens @TrainingParameters.MaxFocusAreas)</legend>
+    @foreach (var area in Areas)
+    {
+        <label class="choice">
+            <input type="checkbox" checked="@Selected.Contains(area.Id)" disabled="@ReadOnly"
+                   @onchange="() => ToggleAsync(area.Id)" />
+            @area.Name
+        </label>
+    }
+    @if (limitHint)
+    {
+        <p class="hint">Es sind höchstens @TrainingParameters.MaxFocusAreas Schwerpunkte möglich. Entferne zuerst einen.</p>
+    }
+    @if (AllowAdd && !ReadOnly && State.CanEdit)
+    {
+        <div class="inline">
+            <input @bind="newName" maxlength="60" placeholder="Eigener Schwerpunkt" aria-label="Eigener Schwerpunkt" />
+            <button type="button" class="secondary" disabled="@string.IsNullOrWhiteSpace(newName)" @onclick="AddAsync">Hinzufügen</button>
+        </div>
+        <ErrorBox Error="addError" />
+    }
+</fieldset>
+
+@code {
+    [Parameter, EditorRequired] public List<FocusAreaDto> Areas { get; set; } = [];
+    [Parameter, EditorRequired] public List<Guid> Selected { get; set; } = [];
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public bool AllowAdd { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private bool limitHint;
+    private string? newName;
+    private ApiError? addError;
+
+    private async Task ToggleAsync(Guid id)
+    {
+        limitHint = false;
+        if (Selected.Remove(id)) { await Changed.InvokeAsync(); return; }
+        if (Selected.Count >= TrainingParameters.MaxFocusAreas) { limitHint = true; return; }
+        Selected.Add(id);
+        await Changed.InvokeAsync();
+    }
+
+    private async Task AddAsync()
+    {
+        addError = null;
+        var result = await Api.AddFocusAreaAsync(newName!.Trim());
+        if (result is not { IsOk: true, Value: { } area }) { addError = result.Error; return; }
+
+        if (Areas.All(a => a.Id != area.Id)) Areas.Add(area);
+        newName = null;
+        await ToggleAsync(area.Id);
+    }
+}

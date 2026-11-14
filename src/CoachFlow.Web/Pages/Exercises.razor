@@ -1,0 +1,190 @@
+@page "/exercises"
+@implements IDisposable
+@inject CoachFlowApi Api
+@inject FocusAreaCatalog Catalog
+@inject AppState State
+@inject NavigationManager Nav
+
+<PageTitle>Übungen – CoachFlow</PageTitle>
+
+<div class="page-head">
+    <h1>Übungsbestand</h1>
+    @if (State.CanEdit && editing is null)
+    {
+        <button @onclick="StartNew">Neue Übung</button>
+    }
+</div>
+<p class="muted">Alle Trainerinnen und Trainer teilen sich diesen Bestand. Eingeplante Übungen sind im Plan als Kopie gespeichert; spätere Änderungen hier ändern keinen Plan.</p>
+
+@if (!State.CanEdit)
+{
+    <p class="notice">Der Übungsbestand ist nur mit Verbindung verfügbar. Gespeicherte Pläne kannst du unter „Pläne“ lesen.</p>
+}
+else if (exercises is null)
+{
+    <p class="muted" role="status">Lädt …</p>
+}
+else
+{
+    @if (editing is not null)
+    {
+        <section class="card" aria-labelledby="form-title">
+            <h2 id="form-title">@(editingId is null ? "Neue Übung" : "Übung bearbeiten")</h2>
+            @* Changed rendert die Seite neu, damit Prüfhinweise und Speichern-Button aktuell sind. *@
+            <ExerciseForm Model="editing" FocusAreas="focusAreas" OtherExercises="exercises.Where(e => e.Id != editingId).ToList()"
+                          Changed="@(() => error = null)" />
+            <FindingList Findings="editing.StructureFindings" />
+            <ErrorBox Error="error" />
+            <div class="actions">
+                <button disabled="@(busy || SuggestionValidator.HasBlockers(editing.StructureFindings))" @onclick="SaveAsync">Speichern</button>
+                <button class="secondary" @onclick="StopEditing">Abbrechen</button>
+            </div>
+        </section>
+    }
+    else
+    {
+        <ErrorBox Error="error" />
+    }
+
+    <input type="search" class="search" @bind="search" @bind:event="oninput" placeholder="Übungen durchsuchen" aria-label="Übungen durchsuchen" />
+
+    @if (exercises.Count == 0)
+    {
+        <p class="muted">Noch keine Übungen im Bestand.</p>
+    }
+    <ul class="exercise-list">
+        @foreach (var exercise in Filtered)
+        {
+            <li class="card" @key="exercise.Id">
+                <div class="item-head">
+                    <strong>@exercise.Content.Title</strong>
+                    @if (exercise.Origin == "Ai")
+                    {
+                        <span class="badge">aus KI-Vorschlag</span>
+                    }
+                </div>
+                <span class="muted small">
+                    @exercise.Content.DurationMinutes Min. ·
+                    @Labels.Participants(exercise.Content.MinParticipants, exercise.Content.MaxParticipants) Personen ·
+                    @string.Join(", ", exercise.Content.Levels.Select(Labels.Level))
+                </span>
+                @if (exercise.Content.FocusAreaIds.Count > 0)
+                {
+                    <span class="muted small">Schwerpunkte: @string.Join(", ", exercise.Content.FocusAreaIds.Select(id => FocusAreaCatalog.Name(focusAreas, id)))</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(exercise.Content.Description))
+                {
+                    <p class="description">@exercise.Content.Description</p>
+                }
+                @if (editing is null)
+                {
+                    <div class="actions">
+                        <button class="link" @onclick="() => StartEdit(exercise)">Bearbeiten</button>
+                        @if (confirmArchive == exercise.Id)
+                        {
+                            <span class="confirm">
+                                Aus dem Bestand entfernen? Pläne behalten ihre Kopie.
+                                <button class="danger" @onclick="() => ArchiveAsync(exercise)">Entfernen</button>
+                                <button class="secondary" @onclick="() => confirmArchive = null">Abbrechen</button>
+                            </span>
+                        }
+                        else
+                        {
+                            <button class="link danger" @onclick="() => confirmArchive = exercise.Id">Entfernen</button>
+                        }
+                    </div>
+                }
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private List<ExerciseDto>? exercises;
+    private List<FocusAreaDto> focusAreas = [];
+    private ExerciseModel? editing;
+    private Guid? editingId;
+    private int editingVersion;
+    private Guid? confirmArchive;
+    private string search = "";
+    private bool busy;
+    private ApiError? error;
+
+    private IEnumerable<ExerciseDto> Filtered => (exercises ?? [])
+        .Where(e => string.IsNullOrWhiteSpace(search)
+                    || (e.Content.Title ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)
+                    || (e.Content.Description ?? "").Contains(search, StringComparison.OrdinalIgnoreCase))
+        .OrderBy(e => e.Content.Title);
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnStateChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!State.CanEdit) return;
+        focusAreas = (await Catalog.LoadAsync()).ToList();
+        var result = await Api.ListExercisesAsync();
+        if (result.Status == ApiStatus.Unauthorized) { Nav.NavigateTo("login"); return; }
+        if (result.IsOk) exercises = result.Value ?? [];
+        else error = result.Error;
+    }
+
+    private void StartNew()
+    {
+        editing = new ExerciseModel();
+        editingId = null;
+        error = null;
+    }
+
+    private void StartEdit(ExerciseDto exercise)
+    {
+        editing = ExerciseModel.From(exercise.Content);
+        editingId = exercise.Id;
+        editingVersion = exercise.Version;
+        error = null;
+    }
+
+    private void StopEditing()
+    {
+        editing = null;
+        editingId = null;
+        error = null;
+    }
+
+    private async Task SaveAsync()
+    {
+        busy = true;
+        error = null;
+        var content = editing!.ToContent();
+        var result = editingId is { } id
+            ? await Api.UpdateExerciseAsync(id, editingVersion, content)
+            : await Api.CreateExerciseAsync(content);
+        busy = false;
+
+        if (result.Status == ApiStatus.Unauthorized) { Nav.NavigateTo("login"); return; }
+        if (!result.IsOk) { error = result.Error; return; } // Eingaben bleiben erhalten
+        StopEditing();
+        await LoadAsync();
+    }
+
+    private async Task ArchiveAsync(ExerciseDto exercise)
+    {
+        confirmArchive = null;
+        error = null;
+        var result = await Api.ArchiveExerciseAsync(exercise.Id, exercise.Version);
+        if (result.Status == ApiStatus.Unauthorized) { Nav.NavigateTo("login"); return; }
+        if (!result.IsOk) error = result.Error;
+        await LoadAsync();
+    }
+
+    private void OnStateChanged()
+    {
+        if (State.CanEdit && exercises is null) _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+        else _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => State.Changed -= OnStateChanged;
+}

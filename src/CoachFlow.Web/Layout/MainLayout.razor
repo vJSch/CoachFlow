@@ -1,0 +1,121 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppState State
+@inject CoachFlowApi Api
+@inject PlanLibrary Library
+@inject PlanCache Cache
+@inject FocusAreaCatalog Catalog
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<header class="topbar">
+    <a class="brand" href="">CoachFlow</a>
+    @if (State.Account is not null)
+    {
+        <nav class="mainnav">
+            <NavLink href="" Match="NavLinkMatch.All">Pläne</NavLink>
+            <NavLink href="exercises">Übungen</NavLink>
+        </nav>
+        <span class="account" title="Angemeldet als">@State.Account</span>
+        <button class="link" @onclick="LogoutAsync" disabled="@State.IsOffline"
+                title="@(State.IsOffline ? "Abmelden ist nur mit Verbindung möglich." : null)">Abmelden</button>
+    }
+</header>
+
+@if (State.IsOffline)
+{
+    <div class="banner offline" role="status">
+        <strong>Keine Verbindung.</strong>
+        @if (State.CachedAt is { } savedAt)
+        {
+            <span>Du siehst den auf diesem Gerät gespeicherten Stand vom @savedAt.ToLocalTime().ToString("dd.MM.yyyy, HH:mm") Uhr. Er kann veraltet sein.</span>
+        }
+        <span>Pläne kannst du nur lesen. Änderungen, Übungen und KI-Vorschläge sind erst mit Verbindung wieder möglich.</span>
+        <button class="link" @onclick="RetryAsync">Erneut verbinden</button>
+    </div>
+}
+
+<main class="content">
+    @if (startError is not null)
+    {
+        <p class="error">@startError</p>
+    }
+    else if (!ready)
+    {
+        <p class="muted" role="status">Lädt …</p>
+    }
+    else
+    {
+        @Body
+    }
+</main>
+
+@code {
+    private bool ready;
+    private string? startError;
+    private DotNetObjectReference<MainLayout>? selfRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnStateChanged;
+        if (State.Account is not null) { ready = true; return; }
+
+        var account = await Api.GetAccountAsync();
+        switch (account.Status)
+        {
+            case ApiStatus.Ok:
+                ready = true;
+                break;
+            case ApiStatus.Unauthorized:
+                Nav.NavigateTo("login");
+                break;
+            case ApiStatus.Offline:
+                // Ohne Verbindung zählt der lokale Stand: Pläne lesen geht auch ohne Server (K15).
+                if (await Library.FromCacheAsync() is PlanListResult.Unavailable unavailable) startError = unavailable.Message;
+                else ready = true;
+                break;
+            default:
+                startError = account.Error?.Message ?? ClientMessages.RequestFailed;
+                break;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        selfRef = DotNetObjectReference.Create(this);
+        try { await JS.InvokeVoidAsync("coachflow.watchConnection", selfRef); }
+        catch (JSException) { }
+    }
+
+    [JSInvokable]
+    public async Task ConnectionChanged(bool online)
+    {
+        if (!online) State.ReportOffline();
+        // Der Browser meldet „online“ schon bei WLAN ohne Internet; erst eine Antwort des Servers zählt.
+        else await Api.GetAccountAsync();
+    }
+
+    private async Task RetryAsync()
+    {
+        var account = await Api.GetAccountAsync();
+        if (account.Status == ApiStatus.Unauthorized) Nav.NavigateTo("login");
+    }
+
+    private async Task LogoutAsync()
+    {
+        await Api.LogoutAsync();
+        // Gemeinsam genutzte Geräte: Nach dem Abmelden bleiben keine Pläne im Browser.
+        await Cache.ClearAsync();
+        await Catalog.ClearAsync();
+        Nav.NavigateTo("login");
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        State.Changed -= OnStateChanged;
+        selfRef?.Dispose();
+    }
+}

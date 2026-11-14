@@ -1,0 +1,327 @@
+@page "/plans/new"
+@page "/plans/{Id:guid}"
+@implements IDisposable
+@inject PlanLibrary Library
+@inject FocusAreaCatalog Catalog
+@inject CoachFlowApi Api
+@inject AppState State
+@inject NavigationManager Nav
+
+<PageTitle>@(model?.Title is { Length: > 0 } t ? t : "Neuer Plan") – CoachFlow</PageTitle>
+
+@if (loadError is not null)
+{
+    <h1>Plan</h1>
+    <p class="error">@loadError</p>
+    <a href="">Zur Übersicht</a>
+}
+else if (model is null)
+{
+    <p class="muted" role="status">Lädt …</p>
+}
+else
+{
+    <div class="page-head">
+        <h1>@(model.IsNew ? "Neuer Plan" : ReadOnly ? model.Title : "Plan bearbeiten")</h1>
+        <a href="">Zur Übersicht</a>
+    </div>
+
+    @if (ReadOnly && model.IsNew)
+    {
+        <p class="notice">Neue Pläne kannst du nur mit Verbindung anlegen.</p>
+    }
+
+    <div class="editor">
+        <div class="editor-main">
+            <section class="card" aria-labelledby="data-title">
+                <h2 id="data-title">Trainingsdaten</h2>
+                <div class="form-grid">
+                    <label class="wide">Titel des Plans
+                        <input @bind="model.Title" maxlength="120" disabled="@ReadOnly" placeholder="z. B. Dienstag U16 – Annahme" />
+                    </label>
+                    <label>Teilnehmende
+                        <input type="number" min="1" @bind="model.Parameters.ParticipantCount" disabled="@ReadOnly" />
+                    </label>
+                    <label>Trainingsdauer (Minuten)
+                        <input type="number" min="1" @bind="model.Parameters.DurationMinutes" disabled="@ReadOnly" />
+                    </label>
+                    <label>Niveau
+                        <select @bind="model.Parameters.Level" disabled="@ReadOnly">
+                            @foreach (var level in Labels.AllLevels)
+                            {
+                                <option value="@level">@Labels.Level(level)</option>
+                            }
+                        </select>
+                    </label>
+                    <label>Streuung der Erfahrung
+                        <select @bind="model.Parameters.Spread" disabled="@ReadOnly">
+                            @foreach (var spread in Labels.AllSpreads)
+                            {
+                                <option value="@spread">@Labels.Spread(spread)</option>
+                            }
+                        </select>
+                    </label>
+                </div>
+                @* Changed rendert den Editor neu, damit Prüfung und KI-Panel die neue Auswahl sehen. *@
+                <FocusAreaPicker Areas="focusAreas" Selected="model.Parameters.FocusAreaIds" ReadOnly="ReadOnly" AllowAdd="true"
+                                 Changed="@(() => saved = null)" />
+            </section>
+
+            <section class="card" aria-labelledby="items-title">
+                <h2 id="items-title">Ablauf</h2>
+                <p class="minutes @(model.RemainingMinutes < 0 ? "over" : "")">
+                    @model.TotalMinutes von @model.Parameters.DurationMinutes Minuten verplant
+                    (@(model.RemainingMinutes >= 0 ? $"{model.RemainingMinutes} frei" : $"{-model.RemainingMinutes} zu viel"))
+                </p>
+
+                @if (model.Items.Count == 0)
+                {
+                    <p class="muted">Noch keine Übungen eingeplant.</p>
+                }
+                <ol class="items">
+                    @for (var i = 0; i < model.Items.Count; i++)
+                    {
+                        var item = model.Items[i];
+                        var index = i;
+                        <li class="item" @key="item.Key">
+                            <div class="item-head">
+                                <strong>@item.Exercise.Title</strong>
+                                <span class="muted small">
+                                    @Labels.Participants(item.Exercise.MinParticipants, item.Exercise.MaxParticipants) Personen
+                                    @if (item.Exercise.DurationMinutes is { } d) { <text> · empfohlen @d Min.</text> }
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(item.Exercise.Description))
+                            {
+                                <p class="description">@item.Exercise.Description</p>
+                            }
+                            @if (item.Exercise.Options.Count > 0)
+                            {
+                                <ul class="option-list">
+                                    @foreach (var option in item.Exercise.Options)
+                                    {
+                                        <li><span class="tag">@Labels.Option(option.Kind)</span> <strong>@option.Title</strong> @option.Description</li>
+                                    }
+                                </ul>
+                            }
+                            <div class="item-controls">
+                                <label>Minuten
+                                    <input type="number" min="0" class="short" @bind="item.PlannedMinutes" disabled="@ReadOnly" />
+                                </label>
+                                <label class="grow">Notiz
+                                    <input @bind="item.Note" disabled="@ReadOnly" />
+                                </label>
+                                @if (!ReadOnly)
+                                {
+                                    <button type="button" class="link" disabled="@(index == 0)" @onclick="() => model.Move(index, -1)" aria-label="Nach oben">↑</button>
+                                    <button type="button" class="link" disabled="@(index == model.Items.Count - 1)" @onclick="() => model.Move(index, 1)" aria-label="Nach unten">↓</button>
+                                    <button type="button" class="link danger" @onclick="() => model.RemoveAt(index)">Entfernen</button>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ol>
+
+                @if (!ReadOnly)
+                {
+                    <details class="picker">
+                        <summary>Übung aus dem Bestand einplanen</summary>
+                        <input type="search" @bind="search" @bind:event="oninput" placeholder="Suchen" aria-label="Übungen durchsuchen" />
+                        @if (exercises.Count == 0)
+                        {
+                            <p class="muted">Der Übungsbestand ist noch leer. Lege Übungen unter „Übungen“ an oder lass dir eine vorschlagen.</p>
+                        }
+                        <ul class="pick-list">
+                            @foreach (var exercise in FilteredExercises)
+                            {
+                                <li @key="exercise.Id">
+                                    <span>
+                                        <strong>@exercise.Content.Title</strong>
+                                        <span class="muted small">@exercise.Content.DurationMinutes Min. · @Labels.Participants(exercise.Content.MinParticipants, exercise.Content.MaxParticipants) Personen</span>
+                                    </span>
+                                    <button type="button" class="secondary" @onclick="() => model.Add(exercise.Id, exercise.Content)">Einplanen</button>
+                                </li>
+                            }
+                        </ul>
+                    </details>
+                }
+            </section>
+        </div>
+
+        <aside class="editor-side">
+            <section class="card" aria-labelledby="check-title">
+                <h2 id="check-title">Prüfung</h2>
+                @if (model.Findings.Count == 0)
+                {
+                    <p class="ok">Keine Auffälligkeiten.</p>
+                }
+                <FindingList Findings="model.Findings" />
+                <p class="muted small">Hinweise verhindern das Speichern nicht.</p>
+            </section>
+
+            @if (!ReadOnly)
+            {
+                <SuggestionPanel Parameters="model.Parameters.ToParameters()" FocusAreas="focusAreas" OnAdopted="Adopted" />
+            }
+
+            @if (!ReadOnly)
+            {
+                <section class="card save">
+                    <ErrorBox Error="saveError" />
+                    @if (saved is not null)
+                    {
+                        <p class="ok" role="status">@saved</p>
+                    }
+                    @if (limitWarning is not null)
+                    {
+                        <div class="confirm-box" role="alertdialog" aria-labelledby="limit-text">
+                            <p id="limit-text">@limitWarning.Message</p>
+                            <p>Zu löschen: <strong>„@limitWarning.PlanToDelete.Title“</strong>, angelegt am @limitWarning.PlanToDelete.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy").</p>
+                            <button type="button" class="danger" disabled="@saving" @onclick="() => SaveAsync(limitWarning.PlanToDelete.Id)">Löschen und speichern</button>
+                            <button type="button" class="secondary" @onclick="() => limitWarning = null">Abbrechen</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <button type="button" disabled="@saving" @onclick="() => SaveAsync(null)">Speichern</button>
+                    }
+                    @if (!model.IsNew)
+                    {
+                        <a class="button secondary export" href="api/plans/@model.Id/export" download>Als Excel herunterladen</a>
+                        <p class="muted small">Exportiert wird der zuletzt gespeicherte Stand.</p>
+                    }
+                </section>
+            }
+        </aside>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private PlanModel? model;
+    private bool fromCache;
+    private string? loadError;
+    private List<FocusAreaDto> focusAreas = [];
+    private List<ExerciseDto> exercises = [];
+    private string search = "";
+    private bool saving;
+    private string? saved;
+    private ApiError? saveError;
+    private PlanLimitWarning? limitWarning;
+
+    private bool ReadOnly => fromCache || !State.CanEdit;
+
+    private IEnumerable<ExerciseDto> FilteredExercises => exercises
+        .Where(e => string.IsNullOrWhiteSpace(search)
+                    || (e.Content.Title ?? "").Contains(search, StringComparison.OrdinalIgnoreCase)
+                    || (e.Content.Description ?? "").Contains(search, StringComparison.OrdinalIgnoreCase))
+        .OrderBy(e => e.Content.Title);
+
+    protected override void OnInitialized() => State.Changed += OnStateChanged;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Nach dem ersten Speichern wechselt nur die Adresse; der Plan ist schon geladen.
+        if (model is { Id: { } current } && current == Id && !fromCache) return;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        model = null;
+        loadError = null;
+        saved = null;
+        saveError = null;
+        limitWarning = null;
+        fromCache = false;
+
+        focusAreas = (await Catalog.LoadAsync()).ToList();
+
+        if (Id is { } id)
+        {
+            var (plan, cached, error) = await Library.GetAsync(id);
+            if (plan is null)
+            {
+                if (State.Account is null) { Nav.NavigateTo("login"); return; }
+                loadError = error ?? "Der Plan wurde nicht gefunden.";
+                return;
+            }
+            model = PlanModel.From(plan);
+            fromCache = cached;
+        }
+        else
+        {
+            model = new PlanModel();
+        }
+
+        if (!ReadOnly) await LoadExercisesAsync();
+    }
+
+    private async Task LoadExercisesAsync()
+    {
+        var result = await Api.ListExercisesAsync();
+        if (result.Status == ApiStatus.Unauthorized) { Nav.NavigateTo("login"); return; }
+        exercises = result.Value ?? [];
+    }
+
+    private void Adopted(ExerciseDto exercise)
+    {
+        exercises.Add(exercise);
+        model!.Add(exercise.Id, exercise.Content);
+        saved = null;
+    }
+
+    private async Task SaveAsync(Guid? confirmDeletionOf)
+    {
+        saving = true;
+        saved = null;
+        saveError = null;
+        try
+        {
+            var input = model!.ToInput();
+            if (input.Title.Length == 0)
+            {
+                saveError = new ApiError("invalid", "Bitte gib dem Plan einen Titel.");
+                return;
+            }
+
+            var result = model.IsNew
+                ? await Api.CreatePlanAsync(input, confirmDeletionOf)
+                : await Api.UpdatePlanAsync(model.Id!.Value, model.Version, input);
+
+            if (result is { IsOk: true, Value: { } plan })
+            {
+                var wasNew = model.IsNew;
+                model.Saved(plan);
+                limitWarning = null;
+                saved = confirmDeletionOf is null ? "Gespeichert." : "Gespeichert. Der älteste Plan wurde gelöscht.";
+                await Library.LoadAsync(); // aktualisiert die Offline-Kopie
+                if (wasNew) Nav.NavigateTo($"plans/{plan.Id}", replace: true);
+                return;
+            }
+
+            if (result.Status == ApiStatus.Unauthorized) { Nav.NavigateTo("login"); return; }
+            if (result.HttpStatus == 409 && result.ReadBody<PlanLimitWarning>() is { Code: "plan-limit-confirmation" } warning)
+            {
+                limitWarning = warning;
+                return;
+            }
+            // Eingaben bleiben im Formular, auch bei Versionskonflikt oder fehlender Verbindung.
+            saveError = result.Error;
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void OnStateChanged()
+    {
+        // Lokaler Stand und Verbindung wieder da: Serverstand laden, damit Bearbeiten möglich wird.
+        if (fromCache && State.CanEdit) _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+        else _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => State.Changed -= OnStateChanged;
+}

@@ -1,0 +1,35 @@
+ ID | Kategorie | Zu beantwortender Punkt | Deine Antwort / Entscheidung |
+|---|---|---|---|
+| K1 | Klärungsbedarf | Wie hoch ist das Budget? Umfasst es nur KI-Aufrufe oder auch Hosting und weitere Dienste? |Der KI-Anbieter ist noch nicht festgelegt. Die Anbindung erfolgt serverseitig über eine austauschbare Schnittstelle. Für erste Funktionstests wird ein Testadapter mit vorbereiteten Antworten verwendet; |
+| K2 | Klärungsbedarf | Wie viel Datenverlust und Ausfallzeit sind akzeptabel? Wie lange werden Sicherungen aufbewahrt? | Ausfallzeit von 2 Tagen sind ok|
+| K3 | Klärungsbedarf | Welche Vorgaben gelten für Datenstandort, Verarbeitung und KI-Anbieter? | keine Vorgaben |
+| K4 | Klärungsbedarf | Was unterscheidet eine „Anpassung“ bei Streuung 2 von einer „Variante“ bei Streuung 3? | Variante ist eventuell sogar eine andere Übung|
+| K5 | Klärungsbedarf | Was bedeuten K0, K1 und K2 genau? | K0 Angabe, K1: Annahme, K2:Abwehr |
+| K6 | Klärungsbedarf | Ist mit der Angabe „12, U13, U14“ die Altersklasse U12 gemeint? | Unter 12 U12  |
+| K7 | Klärungsbedarf | Wird tatsächlich das ältere Format `.xls` benötigt oder genügt `.xlsx`? | xlsx |
+| K8 | Klärungsbedarf | Welche Endgeräte und Browser müssen unterstützt werden? Welche Frontendkenntnisse sind vorhanden? | PC, Mobil |
+| K9 | Klärungsbedarf | Was bedeutet „50 gleichzeitig“: angemeldete Personen, aktive Planbearbeitung oder gleichzeitige KI-Anfragen? | Benutzer |
+| K10 | Klärungsbedarf | Welche zulässigen Grenzen gelten für Dauer und Teilnehmerzahl? Ist 5–14 nur typisch oder verbindlich? | typisch |
+| K11 | Klärungsbedarf · W1 | Soll die verbindliche .NET-Version angesichts ihres Supportzeitraums beibehalten oder geändert werden? | Net 10|
+| K12 | Klärungsbedarf · W2 | Wie werden die widersprüchlichen Zeitvorgaben von 5 und 15 Sekunden aufgelöst? | Nach dem Start erscheint eine Ladeanzeige mit der Schaltfläche „Anfrage abbrechen“. Nach fünf Sekunden wird zusätzlich angezeigt: „Die Erstellung dauert länger. Du kannst weiter warten oder abbrechen.“ Nach spätestens 15 Sekunden beendet die Anwendung das Warten und meldet: „Es konnte rechtzeitig kein Übungsvorschlag erstellt werden. Deine Eingaben bleiben erhalten.“ |
+| K13 | Klärungsbedarf · W3 | Welche Anmeldung ist vorgesehen? Dürfen alle angemeldeten Personen den gemeinsamen Übungsbestand bearbeiten? |Ja |
+| K14 | Klärungsbedarf · W4 | Für wen gilt das Zehn-Pläne-Limit? Zählen Entwürfe mit und was passiert beim elften Plan? | entwürfe, der erste wird gelöscht, nach einer Warnung |
+| K15 | Klärungsbedarf · W5 | Welche Funktionen müssen offline funktionieren? Wie werden Synchronisation, Konflikte und zentrale Limits behandelt? | Plan anschauen offline |
+| K16 | Klärungsbedarf · W6 | Wer darf Budget- und Verbrauchsinformationen sehen, wenn keine Rollenverwaltung vorgesehen ist? | keine Vorgabe |
+| A1 | Eigene Annahme | Nach 5 Sekunden erscheinen Hinweis und Abbruchmöglichkeit; nach 15 Sekunden erfolgt der harte Abbruch. Bestätigen oder ändern? | Nach dem Start erscheint eine Ladeanzeige mit der Schaltfläche „Anfrage abbrechen“. Nach fünf Sekunden wird zusätzlich angezeigt: „Die Erstellung dauert länger. Du kannst weiter warten oder abbrechen.“ Nach spätestens 15 Sekunden beendet die Anwendung das Warten und meldet: „Es konnte rechtzeitig kein Übungsvorschlag erstellt werden. Deine Eingaben bleiben erhalten.“ |
+| A2 | Eigene Annahme | Anmeldung ohne Rollen; Übungen und eigene Schwerpunkte liegen in einem gemeinsamen Bestand. Bestätigen oder ändern? | Bestätigen |
+| A3 | Eigene Annahme | Zehn Pläne je Nutzer einschließlich Entwürfen; der elfte wird abgewiesen, bestehende Pläne werden nicht automatisch gelöscht. Bestätigen oder ändern? | entwürfe, der erste wird gelöscht, nach einer Warnung |
+| A4 | Eigene Annahme | Offline sind Lesen, Bearbeiten und lokales Speichern mit späterer Synchronisation möglich. Erstes Login, KI und Export benötigen eine Verbindung. Bestätigen oder ändern? | Bestätigen|
+| A5 | Eigene Annahme | Pläne enthalten keine Spielernamen, sondern nur Anzahlen. Bestätigen oder ändern? | Bestätigen |
+| A6 | Eigene Annahme | Ein Plan darf null bis zwei Schwerpunkte haben; eine KI-Anfrage benötigt einen oder zwei. Bestätigen oder ändern? | Bestätigen |
+| A7 | Eigene Annahme | Der KI-Anbieter unterstützt strukturierte Antworten und liefert Verbrauchsdaten. Als Auswahlkriterium übernehmen oder ändern? |Bestätigen |
+| A8 | Eigene Annahme | Eine Serverinstanz genügt für die erwartete Last. Vorläufig bestätigen oder andere Betriebsanforderungen festlegen? |Bestätigen |
+| A9 | Eigene Annahme | Tägliche Sicherung, 14 Tage Aufbewahrung, maximal 24 Stunden Datenverlust und vier Stunden Wiederherstellungszeit. Bestätigen oder ändern? | Bestätigen|
+| R1 | Risiko | Der Support der vorgegebenen Laufzeit läuft aus. Welche Version und welche Upgrade-Strategie werden festgelegt? | Net10 |
+| R2 | Risiko | Offline-Synchronisation verursacht mehr Aufwand als erwartet. Welcher Offline-Umfang ist für den MVP unverzichtbar? |Lesen der Pläne reicht |
+| R3 | Risiko | Der Browser löscht lokale Daten; nicht synchronisierte Änderungen gehen verloren. Welche Absicherung und Nutzerhinweise sind erforderlich? | Warnung |
+| R4 | Risiko | Die KI antwortet zu langsam; Abbrüche können trotzdem Kosten verursachen. Welche Wartezeiten und Kostenfolgen sind akzeptabel? |Es gilt das unter K8 festgelegte projektweite KI-Budget. Pro Nutzer darf höchstens eine KI-Anfrage gleichzeitig laufen; zusätzlich gilt eine Grenze von fünf Anfragen pro Minute. |
+| R5 | Risiko | Schlechte fachliche KI-Vorschläge führen zu Vertrauensverlust. Wie werden Qualität und Eignung geprüft? | Nutzer|
+| R6 | Risiko | Nutzende verändern fremde Übungen im gemeinsamen Bestand. Welche Änderungsnachweise und Wiederherstellungsmöglichkeiten werden benötigt? | keine|
+| R7 | Risiko | Die KI-Übertragung verursacht Datenschutzprobleme. Welche Datenbegrenzung und Anbieterprüfung werden verlangt? | kein|
+

@@ -1,0 +1,16 @@
+@if (Findings.Count > 0)
+{
+    <ul class="findings" aria-label="Prüfhinweise">
+        @foreach (var finding in Findings.OrderBy(f => f.Severity))
+        {
+            <li class="@(finding.Severity == FindingSeverity.Blocker ? "blocker" : "warning")">
+                <span class="tag">@(finding.Severity == FindingSeverity.Blocker ? "Muss korrigiert werden" : "Hinweis")</span>
+                @finding.Message
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<Finding> Findings { get; set; } = [];
+}

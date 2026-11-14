@@ -1,0 +1,63 @@
+@page "/login"
+@layout AuthLayout
+@inject CoachFlowApi Api
+@inject NavigationManager Nav
+
+<PageTitle>@(register ? "Registrieren" : "Anmelden") – CoachFlow</PageTitle>
+
+<h1>@(register ? "Konto anlegen" : "Anmelden")</h1>
+
+<form class="card stack" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+    <label>E-Mail
+        <input type="email" @bind="email" autocomplete="username" required />
+    </label>
+    <label>Passwort
+        <input type="password" @bind="password" autocomplete="@(register ? "new-password" : "current-password")" required minlength="@(register ? 10 : 1)" />
+    </label>
+    @if (register)
+    {
+        <p class="hint">Mindestens 10 Zeichen. Ein langer Satz ist sicherer als ein kurzes Passwort mit Sonderzeichen.</p>
+    }
+    <ErrorBox Error="error" />
+    <button type="submit" disabled="@busy">@(register ? "Konto anlegen" : "Anmelden")</button>
+    <button type="button" class="link" @onclick="Toggle">
+        @(register ? "Ich habe schon ein Konto" : "Noch kein Konto? Registrieren")
+    </button>
+</form>
+
+@code {
+    private bool register;
+    private bool busy;
+    private string email = "";
+    private string password = "";
+    private ApiError? error;
+
+    private void Toggle()
+    {
+        register = !register;
+        error = null;
+    }
+
+    private async Task SubmitAsync()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            if (register)
+            {
+                var created = await Api.RegisterAsync(email.Trim(), password);
+                if (!created.IsOk) { error = created.Error; return; }
+            }
+
+            var login = await Api.LoginAsync(email.Trim(), password);
+            if (!login.IsOk) { error = login.Error; return; }
+            password = "";
+            Nav.NavigateTo("");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

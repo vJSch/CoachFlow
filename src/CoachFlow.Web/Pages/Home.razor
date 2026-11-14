@@ -1,0 +1,125 @@
+﻿@page "/"
+@implements IDisposable
+@inject PlanLibrary Library
+@inject CoachFlowApi Api
+@inject AppState State
+@inject NavigationManager Nav
+
+<PageTitle>Pläne – CoachFlow</PageTitle>
+
+<div class="page-head">
+    <h1>Meine Trainingspläne</h1>
+    @if (plans is not null)
+    {
+        <span class="muted">@plans.Count von @PlanLimitPolicy.MaxPlansPerUser gespeichert</span>
+    }
+    @if (State.CanEdit)
+    {
+        <a class="button" href="plans/new">Neuer Plan</a>
+    }
+    else
+    {
+        <button disabled title="Neue Pläne nur mit Verbindung">Neuer Plan</button>
+    }
+</div>
+
+@if (plans is not null && plans.Count >= PlanLimitPolicy.MaxPlansPerUser && State.CanEdit)
+{
+    <p class="notice">Du hast @PlanLimitPolicy.MaxPlansPerUser Pläne gespeichert. Beim nächsten neuen Plan wird nach Rückfrage der älteste gelöscht.</p>
+}
+
+<ErrorBox Error="error" />
+
+@if (message is not null)
+{
+    <p class="error">@message</p>
+}
+else if (plans is null)
+{
+    <p class="muted" role="status">Lädt …</p>
+}
+else if (plans.Count == 0)
+{
+    <p class="muted">Noch keine Pläne. Lege deinen ersten Trainingsplan an.</p>
+}
+else
+{
+    <ul class="plan-list">
+        @foreach (var plan in plans)
+        {
+            <li class="card" @key="plan.Id">
+                <a class="plan-title" href="plans/@plan.Id">@plan.Title</a>
+                <span class="muted">
+                    @Labels.Level(plan.Parameters.Level) · @plan.Parameters.ParticipantCount Personen ·
+                    @plan.TotalMinutes von @plan.Parameters.DurationMinutes Minuten verplant · @plan.Items.Count Übungen
+                </span>
+                @if (plan.Findings.Count > 0)
+                {
+                    <span class="badge warning">@plan.Findings.Count @(plan.Findings.Count == 1 ? "Hinweis" : "Hinweise")</span>
+                }
+                <span class="muted small">Geändert am @plan.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy, HH:mm")</span>
+                @if (State.CanEdit)
+                {
+                    @if (confirmDelete == plan.Id)
+                    {
+                        <span class="confirm">
+                            Plan „@plan.Title“ wirklich löschen?
+                            <button class="danger" @onclick="() => DeleteAsync(plan.Id)">Löschen</button>
+                            <button class="secondary" @onclick="() => confirmDelete = null">Abbrechen</button>
+                        </span>
+                    }
+                    else
+                    {
+                        <button class="link danger" @onclick="() => confirmDelete = plan.Id">Löschen</button>
+                    }
+                }
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private IReadOnlyList<PlanDto>? plans;
+    private string? message;
+    private ApiError? error;
+    private Guid? confirmDelete;
+    private bool wasOffline;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnStateChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        message = null;
+        switch (await Library.LoadAsync())
+        {
+            case PlanListResult.Online online: plans = online.Plans; break;
+            case PlanListResult.Cached cached: plans = cached.Snapshot.Plans; break;
+            case PlanListResult.Unavailable unavailable: message = unavailable.Message; break;
+            case PlanListResult.Unauthorized: Nav.NavigateTo("login"); break;
+        }
+        wasOffline = State.IsOffline;
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        confirmDelete = null;
+        error = null;
+        var result = await Api.DeletePlanAsync(id);
+        if (result.Status == ApiStatus.Unauthorized) { Nav.NavigateTo("login"); return; }
+        if (!result.IsOk && result.HttpStatus != 404) { error = result.Error; return; }
+        await LoadAsync();
+    }
+
+    // Kommt die Verbindung zurück, wird der Serverstand geladen und ersetzt den lokalen.
+    private void OnStateChanged()
+    {
+        if (wasOffline && !State.IsOffline) _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+        else _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => State.Changed -= OnStateChanged;
+}
