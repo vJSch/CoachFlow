@@ -4,13 +4,11 @@
 
 | Vergleichsstand | Quelle oder Commit |
 | --- | --- |
-| A0 – ursprüngliche Antwort SimplePrompt | [eintragen] |
-| B0 – ursprüngliche Antwort AdvancedPrompt | [eintragen] |
 | A1 – präzisierte Fassung SimplePrompt, falls vorhanden | [eintragen] |
 | B1 – präzisierte Fassung AdvancedPrompt, falls vorhanden | [eintragen] |
 | Gemeinsamer Projektkontext und Kriterien | [Stand eintragen] |
 
-A0 und B0 zeigen, was die ursprünglichen Prompts geliefert haben. A1 und B1 werden getrennt verglichen, sobald präzisierte Fassungen vorliegen. Welche Unterschiede auf nachgereichte Klärungen zurückgehen, wird mit den jeweiligen Ausgangsfassungen dokumentiert.
+A1 und B1 bezeichnen die Quellcodestände, die aus den initialen Prompts entstanden sind, jeweils ergänzt um die Antworten auf die direkten Rückfragen der KI. . Dabei wird anhand der ergänzenden Tabelle [eintrage], [eintrgen] dokumentiert, welche Unterschiede auf nachgereichte Klärungen zurückgehen.
 
 ## Ergebnismatrix
 
