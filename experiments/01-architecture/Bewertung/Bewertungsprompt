@@ -1,0 +1,94 @@
+Du führst ein nachvollziehbares Architekturreview anhand des vorhandenen Quellcodes durch. 
+Untersuche ausschließlich das angegebene Repository. Bewerte es unabhängig von anderen Implementierungen.
+
+## Eingaben
+
+- Repository oder lokaler Pfad: [EINTRAGEN bzw. bei Start in einem Repo dieses verwenden]
+- Zu untersuchender Branch oder Commit: [EINTRAGEN]
+- Verbindlicher Projektkontext: [Kontext aus dem Bewertungskontext des Repos nehmen]
+- Szenario: S1 – Eigene Übungen anlegen, ändern und in einem Trainingsplan verwenden.
+- Prüffrage: Wie unterstützt die Implementierung diesen Ablauf, und ist er unabhängig vom KI-Anbieter?
+
+Für die untersuchten Implementierungen gelten dieselben Kriterien:
+
+1. Eigene Übungen können angelegt und geändert werden.
+2. Fachliche Eingaben werden entsprechend den festgelegten Regeln geprüft.
+3. Übungen werden gespeichert und können erneut geladen werden.
+4. Eigene Übungen können einem Trainingsplan zugeordnet und mit diesem gespeichert werden.
+5. Diese Abläufe erfordern keinen Aufruf des KI-Anbieters.
+
+## Arbeitsregeln
+
+- Arbeite ausschließlich lesend. Ändere keine Dateien und installiere nichts.
+- Starte weder Anwendung noch Build oder Tests. Erlaubt sind lesende Such-, Datei- und Git-Befehle.
+- Dokumentiere den tatsächlich untersuchten Commit und vorhandene lokale Änderungen. Bei lokalen Änderungen gilt die Analyse nicht ausschließlich für den Commit.
+- Verwende Quellcode als Beleg für implementierte Mechanismen. Dokumentation und Kommentare beschreiben Absichten und sind gesondert zu kennzeichnen.
+- Vorhandene Tests dürfen gelesen werden. Ihre Existenz belegt weder ihre erfolgreiche Ausführung noch korrektes Laufzeitverhalten.
+- Erfinde keine Dateien, Zeilennummern, Aufrufbeziehungen oder Ergebnisse.
+- Gib keine Zugangsdaten oder sonstigen Geheimnisse aus.
+- Leite aus nicht gefundenem Code nicht automatisch eine fehlende Funktion ab. Dokumentiere Suchumfang und Unsicherheit.
+- Übernimm keine Bewertung einer anderen Implementierung.
+
+## Untersuchung
+
+Verfolge den Ablauf soweit vorhanden durch Oberfläche, API, Anwendungslogik, fachliche Prüfungen und Datenhaltung.
+
+Untersuche dabei:
+
+- Einstiegspunkte zum Anlegen und Ändern eigener Übungen.
+- Fachliche Prüfregeln und den Umgang mit ungültigen Eingaben.
+- Speichern und erneutes Laden.
+- Auswahl einer Übung und Zuordnung zu einem Trainingsplan.
+- Speicherung und erneutes Laden des Trainingsplans.
+- Direkte oder indirekte Abhängigkeiten von KI-Diensten.
+- Zugehörige Testfälle und deren tatsächlich geprüfte Aussagen.
+
+Prüfe bei der KI-Abhängigkeit auch aufgerufene Hilfsdienste, Konstruktoren, Dependency-Injection-Registrierungen und gemeinsame Initialisierung, soweit sie für den Ablauf relevant sind. Benenne nicht auflösbare Verknüpfungen, etwa durch dynamische Aufrufe oder fehlende Konfiguration.
+
+Die Aussage „kein KI-Aufruf erforderlich“ darf nur für nachvollziehbar untersuchte Pfade getroffen werden. Daraus folgt noch kein Nachweis, dass die Anwendung unter realem KI-Ausfall uneingeschränkt nutzbar bleibt.
+
+## Ausgabe
+
+### 1. Untersuchungsstand
+
+Nenne Repository, Branch, Commit, lokale Änderungen und untersuchte Bereiche. Fehlende Angaben kennzeichnest Du als unbekannt.
+
+### 2. Rekonstruierter Ablauf
+
+Beschreibe knapp den tatsächlichen Weg vom Anlegen einer eigenen Übung bis zum gespeicherten Trainingsplan. Verwende die im Code vorhandenen Komponenten- und Methodennamen.
+
+Kennzeichne Unterbrechungen oder nicht nachvollziehbare Übergänge.
+
+### 3. Belegtabelle
+
+Erstelle pro eigenständigem Befund eine Zeile:
+
+| ID | Prüfaspekt | Fundstelle | Konkreter Codebeleg | Herleitung | Urteil | Grenze oder nötige Prüfung |
+|---|---|---|---|---|---|---|
+
+Für die Tabelle gilt:
+
+- Fundstellen enthalten Repository-relative Dateipfade, tatsächliche Zeilenbereiche und relevante Symbole.
+- Der Codebeleg nennt die konkrete Anweisung, Bedingung oder Aufrufbeziehung; bei Bedarf mit kurzem Ausschnitt.
+- Die Herleitung erklärt, warum der Beleg für das Kriterium relevant ist.
+- Mehrere Fundstellen sind zulässig, wenn erst ihre Verbindung den Befund trägt.
+- Fehlende Belege werden ausdrücklich als solche bezeichnet.
+
+Verwende folgende Urteile:
+
+- **Statisch belegt:** Der Mechanismus ist im untersuchten Code nachvollziehbar.
+- **Teilweise belegt:** Wesentliche Teile sind erkennbar, aber Übergänge oder Bedingungen bleiben offen.
+- **Nicht beurteilbar:** Die vorliegenden Belege reichen nicht aus.
+- **Widerspruch zum Kriterium:** Konkreter Code widerspricht dem festgelegten Kriterium.
+
+### 4. Risiken und offene Punkte
+
+Nenne nur aus der Untersuchung ableitbare Risiken. Trenne beobachtete Probleme von möglichen Risiken und fehlenden Informationen. Verweise auf die Befund-IDs.
+
+### 5. Kurzes Urteil und nächste Prüfung
+
+Beantworte die Prüffrage in höchstens fünf Sätzen. Trenne statische Befunde von Erwartungen an das Laufzeitverhalten.
+
+Leite höchstens drei gezielte Prototyp- oder Testprüfungen aus verbleibenden Unsicherheiten ab. Nenne jeweils Handlung, erwartetes Ergebnis und zugehörige Befund-ID.
+
+Vergib keine Gesamtnote und behaupte keine erfolgreiche Prüfung, die nicht durchgeführt wurde.
