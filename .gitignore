@@ -1,0 +1,18 @@
+bin/
+obj/
+node_modules/
+TestResults/
+*.user
+.vs/
+
+# Wird beim Frontend-Build erzeugt
+src/CoachFlow.Api/wwwroot/
+
+# Lokale SQLite-Datenbank
+src/CoachFlow.Api/App_Data/
+
+# Persönliche Claude-Code-Einstellungen
+.claude/settings.local.json
+
+# Dokumentation
+/docs/

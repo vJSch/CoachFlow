@@ -1,0 +1,10 @@
+**/bin
+**/obj
+**/node_modules
+src/CoachFlow.Api/wwwroot
+src/CoachFlow.Api/App_Data
+tests
+.git
+.claude
+*.md
+*.MD

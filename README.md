@@ -1,41 +1,93 @@
 # CoachFlow
 
-Begleitmaterial zur Fallstudie „KI verändert Softwarearchitektur – aber anders als wir denken“.
+Webanwendung zur Planung von Mannschaftstrainings, zunächst für Volleyball. Die Architektur steht in [SimplePrompt_Answer2.MD](SimplePrompt_Answer2.MD).
 
-CoachFlow ist eine beispielhafte Anwendung zur Planung von Mannschaftstrainings. Eigene Übungen und manuelle Trainingsplanung bilden den fachlichen Kern; eine KI-Anbindung ergänzt Übungsvorschläge.
+## Voraussetzungen
 
-## Aufbau
+- .NET SDK 10
+- Node.js 22
 
-| Pfad | Inhalt |
-| --- | --- |
-| [experiments/01-architecture/SimplePrompt/01-prompt.md](experiments/01-architecture/SimplePrompt/01-prompt.md) | Erster Prompt mit knappem Kontext; zunächst leere Datei. |
-| [experiments/01-architecture/AdvancedPrompt/01-prompt.md](experiments/01-architecture/AdvancedPrompt/01-prompt.md) | Erster Prompt mit ausführlichem Kontext; zunächst leere Datei. |
-| [Bewertung](experiments/01-architecture/Bewertung/) | Gemeinsame Bewertungsgrundlage für S1 bis S5 und Vorlagen für die Auswertung. |
-| [AdditionalAssessmentDocuments/](AdditionalAssessmentDocuments/) | Übersicht zu den ergänzenden Bewertungsdokumenten. |
+Ein Datenbankserver ist nicht nötig. CoachFlow nutzt SQLite. Lokal liegt die Datenbank unter `src/CoachFlow.Api/App_Data/coachflow.db` und entsteht beim ersten Start.
 
-## Zwei Versuchsrunden
+## Lokal starten
 
-1. **Architekturentwurf:** Zwei Varianten mit knappem beziehungsweise ausführlichem Kontext und unterschiedlichem Begründungsauftrag. Ursprüngliche Antworten und spätere Präzisierungen werden getrennt dokumentiert.
-2. **Implementierung:** Eine identische Erweiterung wird ausgehend von demselben Prototypstand zweimal umgesetzt, ohne beziehungsweise mit einem Architektur-Skill.
+```
+dotnet tool restore
+dotnet run --project src/CoachFlow.Api
+```
 
-Die Bewertungsdokumente enthalten Szenarien, Kriterien und Vorlagen. Architekturantworten, ausgefüllte Bewertungen und Implementierungen werden getrennt ergänzt.
+In einem zweiten Terminal:
 
-## Dokumentation der ersten Runde
+```
+cd src/coachflow-web
+npm install
+npm run dev
+```
 
-Je Variante können später diese Dateien ergänzt werden:
+### Erstes Konto
 
-- `01-prompt.md`: der tatsächlich verwendete erste Prompt.
-- `02-response-original.md`: unveränderte ursprüngliche Antwort (A0 beziehungsweise B0).
-- `03-clarifications.md`: nachgereichte Fragen und Entscheidungen mit Zuordnung zur ursprünglichen Antwort.
-- `04-response-refined.md`: daraus entstandene präzisierte Antwort (A1 beziehungsweise B1).
-- `run-metadata.md`: Datum, Werkzeug, Modell, Einstellungen und tatsächlich bereitgestellte Dateien.
+Konten entstehen nur über Einladungen. Die erste Einladung erzeugt die Kommandozeile:
 
-Der gemeinsame Projektkontext und die Bewertungsmaßstäbe liegen im Ordner [Bewertung](experiments/01-architecture/Bewertung/). Sie werden nicht automatisch Bestandteil beider Prompts: Die unterschiedliche Kontextmenge ist Teil des Versuchs.
+```
+dotnet run --project src/CoachFlow.Api -- invite deine@adresse.de
+```
 
-## Branches und Vergleichbarkeit
+Den ausgegebenen Link im Browser öffnen und das Konto anlegen. In der Entwicklung erscheinen alle weiteren E-Mails (Einladungen, Passwort-Reset) in der Konsole des Backends, statt versendet zu werden.
 
-Promptvarianten und Bewertungsdokumente bleiben gemeinsam auf `main`, damit sie nebeneinander lesbar und verlinkbar sind.
+Das Frontend läuft unter der von Vite angezeigten Adresse und leitet `/api` und `/health` an das Backend auf Port 5080 weiter. Die Datenbankmigrationen laufen beim Start des Backends.
 
-Für später ausführbare Implementierungsvarianten sind getrennte Branches sinnvoll, beispielsweise `implementation/without-skill` und `implementation/with-skill`. Beide müssen vom selben dokumentierten Prototyp-Commit starten. Verglichene Stände werden über konkrete Commit-SHAs oder Tags referenziert.
+### KI-Vorschläge
 
-Ordner und Branches allein garantieren keine Isolation zwischen KI-Läufen. Für neue Läufe werden nur die jeweils freigegebenen Eingaben in getrennte Arbeitsverzeichnisse und neue Sitzungen übernommen. Der vollständige Dokumentationsbestand wird dem Entwurfsmodell nicht als gemeinsamer Kontext bereitgestellt.
+In der Entwicklung liefert ein Testadapter vorbereitete Beispiele, gekennzeichnet mit „[Testvorschlag]“. Ein externer Dienst wird nicht aufgerufen. Die Wartezeit lässt sich zum Ausprobieren der Meldungen verlängern, z. B. auf 7 Sekunden für den Hinweis oder 20 Sekunden für das Zeitlimit:
+
+```
+dotnet run --project src/CoachFlow.Api -- --Ai:Test:Delay=00:00:07
+```
+
+Außerhalb der Entwicklung sind KI-Vorschläge abgeschaltet (`Ai:Provider` = `None`).
+
+| Einstellung | Standard | Bedeutung |
+|---|---|---|
+| `Ai:Provider` | `None`, in der Entwicklung `Test` | `None` oder `Test`. Ein echter Anbieter folgt in Schritt 7. |
+| `Ai:MonthlyBudgetEuro` | leer | Obergrenze der geschätzten Kosten je Kalendermonat (UTC). Leer heißt: keine Grenze. |
+| `Ai:Timeout` | `00:00:13` | Danach bricht der Server ab. Die Oberfläche gibt nach 15 Sekunden auf. |
+| `Ai:RequestsPerMinute` | `5` | Je Person, zusätzlich höchstens eine laufende Anfrage. |
+
+## Prüfen
+
+```
+dotnet test CoachFlow.slnx
+```
+
+Tests mit Datenbank legen je Test eine eigene temporäre SQLite-Datei an.
+
+```
+cd src/coachflow-web
+npm run lint
+npm test
+npm run build
+```
+
+`npm test` prüft die Offline-Lesekopie der Pläne mit einer nachgebildeten IndexedDB. Ob die App wirklich offline startet, lässt sich nur im Browser prüfen: Die App einmal online öffnen und anmelden, dann in den Entwicklerwerkzeugen „Offline“ wählen und neu laden. Das klappt nur mit dem Build (`npm run build`, Backend starten), nicht mit `npm run dev`, weil der Service Worker nur im Build entsteht.
+
+Die Abhängigkeiten sind exakt festgelegt. `.npmrc` setzt `legacy-peer-deps`, weil npm 10 sonst beim Installieren mit „Cannot read properties of null (reading 'edgesOut')“ abbricht.
+
+## Migration anlegen
+
+```
+dotnet ef migrations add <Name> --project src/CoachFlow.Api --output-dir Data/Migrations
+```
+
+## Betrieb
+
+Das `Dockerfile` erzeugt einen Container, der API und Frontend auf Port 8080 ausliefert. Für E-Mails und Links braucht der Betrieb diese Einstellungen, als Umgebungsvariablen mit `__` statt `:`:
+
+| Einstellung | Bedeutung |
+|---|---|
+| `Accounts:PublicBaseUrl` | Adresse der App, z. B. `https://coachflow.example.org` |
+| `Mail:Smtp:Host`, `Port`, `EnableSsl` | SMTP-Server des E-Mail-Dienstes, Standard Port 587 mit TLS |
+| `Mail:Smtp:Username`, `Password`, `From` | Zugangsdaten und Absenderadresse |
+
+Ohne `Mail:Smtp:Host` lehnt die App Einladungen und Passwort-Resets mit einem Hinweis ab. Das erste Konto entsteht im Container mit `dotnet CoachFlow.Api.dll invite <E-Mail>`.
+
+Die Datenbank liegt im Container unter `/data/coachflow.db`. Auf `/data` muss ein dauerhaftes Volume liegen, sonst gehen alle Daten beim Neustart verloren. Es darf nur eine Instanz laufen. HTTPS muss die Hosting-Plattform bereitstellen, denn ohne HTTPS funktioniert der Service Worker nicht.
